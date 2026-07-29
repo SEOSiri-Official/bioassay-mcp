@@ -3,6 +3,7 @@ import json
 import os
 import sys
 
+# Force project root into Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.main_server import (
@@ -13,7 +14,7 @@ from src.main_server import (
     calculate_tissue_organoid_penetration,
     calculate_organism_in_vivo_pharmacokinetics,
     generate_plate_layout,
-    get_assay_kit_specifications
+    get_assay_kit_specifications,
     ingest_medical_device_telemetry,
     convert_to_fhir_observation
 )
