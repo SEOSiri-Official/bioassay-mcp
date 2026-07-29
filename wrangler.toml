@@ -1,0 +1,6 @@
+name = "seosiri-bioassay-mcp"
+main = "worker.js"
+compatibility_date = "2026-07-29"
+
+[site]
+bucket = "./public"
