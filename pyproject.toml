@@ -1,0 +1,31 @@
+[project]
+name = "seosiri-bioassay-mcp"
+version = "1.1.0"
+description = "A sovereign, local-first MCP server for High-Throughput Screening (HTS) assay calculations across Sub-Cellular, Cellular, Tissue, and Organism biological segments."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "SEOSiri-Official", email = "info@seosiri.com" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps."
+]
+dependencies = [
+    "mcp>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/SEOSiri-Official/bioassay-mcp"
+Repository = "https://github.com/SEOSiri-Official/bioassay-mcp.git"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]
