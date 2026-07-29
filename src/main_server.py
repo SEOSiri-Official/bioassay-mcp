@@ -350,6 +350,123 @@ def get_assay_kit_specifications(kit_category: str) -> str:
     selected = specs.get(category, {"error": "Invalid kit category. Use TR-FRET, UA-GLO, ONESTEP_ELISA, or HICA."})
     return json.dumps(selected)
 
+# ---------------------------------------------------------------------
+# TOOL 9: MEDICAL DEVICE TELEMETRY INGESTOR
+# ---------------------------------------------------------------------
+@mcp.tool()
+def ingest_medical_device_telemetry(
+    device_id: str,
+    device_type: str,
+    measurement_type: str,
+    raw_value: float,
+    unit_of_measure: str,
+    calibration_status: str = "PASS"
+) -> str:
+    """
+    Medical Device Connector: Ingests raw telemetry and measurement records from 
+    clinical lab devices (plate readers, spectrophotometers, point-of-care units).
+
+    Args:
+        device_id: Unique hardware serial number or device identifier (e.g. 'DEV-PLATERED-99').
+        device_type: Equipment classification ('MICROPLATE_READER', 'BLOOD_GAS_ANALYZER', 'SPECTROPHOTOMETER').
+        measurement_type: Measured parameter ('ABSORBANCE_450NM', 'FLUORESCENCE_RFU', 'LUMINESCENCE_RLU').
+        raw_value: Quantitative measurement value output by hardware sensors.
+        unit_of_measure: Unit ('OD', 'RFU', 'RLU', 'mmol/L', 'pg/mL').
+        calibration_status: Hardware self-test state ('PASS', 'WARN', 'FAIL').
+    """
+    if calibration_status.upper() == "FAIL":
+        return json.dumps({
+            "status": "REJECTED",
+            "device_id": device_id,
+            "reason": "HARDWARE_CALIBRATION_FAILURE",
+            "remediation": "Recalibrate device sensors before re-submitting measurement."
+        })
+
+    import time
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    return json.dumps({
+        "status": "INGESTED",
+        "device_id": device_id.upper().strip(),
+        "device_type": device_type.upper().strip(),
+        "timestamp": timestamp,
+        "measurement": {
+            "parameter": measurement_type.upper().strip(),
+            "value": round(raw_value, 4),
+            "unit": unit_of_measure,
+            "hardware_status": calibration_status.upper()
+        }
+    })
+
+# ---------------------------------------------------------------------
+# TOOL 10: HL7 FHIR DIAGNOSTIC OBSERVATION CONVERTER
+# ---------------------------------------------------------------------
+@mcp.tool()
+def convert_to_fhir_observation(
+    patient_id_hash: str,
+    device_id: str,
+    loinc_code: str,
+    display_name: str,
+    value_quantity: float,
+    value_unit: str
+) -> str:
+    """
+    FHIR Converter: Formats a medical device measurement into an HL7 FHIR v4.0.1 
+    compliant 'Observation' JSON resource with anonymized patient identifiers for EHR sync.
+
+    Args:
+        patient_id_hash: SHA-256 hashed or anonymized patient reference ID (HIPAA compliant).
+        device_id: Device identifier that generated the observation.
+        loinc_code: Standard LOINC code for the clinical observation (e.g. '2777-1' for IL-6).
+        display_name: Human-readable test name (e.g. 'Interleukin-6 Serum Concentration').
+        value_quantity: Measured numeric value.
+        value_unit: Standard UCUM unit string (e.g. 'pg/mL', 'mmol/L').
+    """
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    # HL7 FHIR v4.0.1 Observation Resource Schema
+    fhir_resource = {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+            {
+                "coding": [
+                    {
+                        "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                        "code": "laboratory",
+                        "display": "Laboratory"
+                    }
+                ]
+            }
+        ],
+        "code": {
+            "coding": [
+                {
+                    "system": "http://loinc.org",
+                    "code": loinc_code,
+                    "display": display_name
+                }
+            ],
+            "text": display_name
+        },
+        "subject": {
+            "reference": f"Patient/{patient_id_hash}"
+        },
+        "effectiveDateTime": timestamp,
+        "valueQuantity": {
+            "value": round(value_quantity, 4),
+            "unit": value_unit,
+            "system": "http://unitsofmeasure.org"
+        },
+        "device": {
+            "display": f"MedicalDevice/{device_id}"
+        }
+    }
+
+    return json.dumps({
+        "status": "FHIR_CONVERSION_SUCCESS",
+        "fhir_resource": fhir_resource
+    })
 
 if __name__ == "__main__":
     import time

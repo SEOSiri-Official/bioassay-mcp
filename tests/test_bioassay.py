@@ -14,6 +14,8 @@ from src.main_server import (
     calculate_organism_in_vivo_pharmacokinetics,
     generate_plate_layout,
     get_assay_kit_specifications
+    ingest_medical_device_telemetry,
+    convert_to_fhir_observation
 )
 
 def test_1_tr_fret_ratio_subcellular():
@@ -60,3 +62,18 @@ def test_8_assay_specs():
     res = json.loads(get_assay_kit_specifications("TR-FRET"))
     assert "supported_segments" in res
     assert "SUB_CELLULAR" in res["supported_segments"]
+
+def test_9_medical_device_telemetry():
+    res = json.loads(ingest_medical_device_telemetry(
+        "DEV-READER-01", "MICROPLATE_READER", "ABSORBANCE_450NM", 1.25, "OD", "PASS"
+    ))
+    assert res["status"] == "INGESTED"
+    assert res["measurement"]["value"] == 1.25
+
+def test_10_fhir_observation_conversion():
+    res = json.loads(convert_to_fhir_observation(
+        "anon_pt_99", "DEV-READER-01", "2777-1", "IL-6 Concentration", 12.5, "pg/mL"
+    ))
+    assert res["status"] == "FHIR_CONVERSION_SUCCESS"
+    assert res["fhir_resource"]["resourceType"] == "Observation"
+    assert res["fhir_resource"]["code"]["coding"][0]["code"] == "2777-1"
