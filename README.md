@@ -2,7 +2,6 @@
 
 An open-source, local-first Model Context Protocol (MCP) server for High-Throughput Screening (HTS) assay calculations spanning **Sub-Cellular, Cellular, Tissue, and Organism** biological tiers.
 
-[![bioassay-mcp MCP server](https://glama.ai/mcp/servers/SEOSiri-Official/bioassay-mcp/badges/card.svg?v=1)](https://glama.ai/mcp/servers/SEOSiri-Official/bioassay-mcp)
 
 ## 💖 Sponsorship, B2B Custom Solutions & Attribution
 

@@ -1,6 +1,6 @@
 [project]
 name = "seosiri-bioassay-mcp"
-version = "1.1.0"
+version = "1.1.1"
 description = "A sovereign, local-first MCP server for High-Throughput Screening (HTS) assay calculations across Sub-Cellular, Cellular, Tissue, and Organism biological segments."
 readme = "README.md"
 requires-python = ">=3.10"
