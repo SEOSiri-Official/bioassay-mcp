@@ -1,4 +1,4 @@
-# seosiri-bioassay-mcp
+> 📖 **Official Architecture & Documentation:** [SEOSiri BioAssay Technical Guide](https://www.seosiri.com/2026/07/bioassay-mcp.html) | [Central MCP Directory](https://www.seosiri.com/2026/07/seosiri-mcp-servers.html)
 
 An open-source, local-first Model Context Protocol (MCP) server for High-Throughput Screening (HTS) assay calculations spanning **Sub-Cellular, Cellular, Tissue, and Organism** biological tiers.
 
