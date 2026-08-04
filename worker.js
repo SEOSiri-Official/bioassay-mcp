@@ -1,14 +1,25 @@
-// worker.js - Protocol-Aware Cloudflare Edge Gateway for SEOSiri BioAssay MCP
+// worker.js - Native MCP Edge Discovery & Proxy Gateway for SEOSiri BioAssay
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request));
 });
 
-const BACKEND_ENDPOINT = "https://hubappapi.seosiri.com/bioassay";
+const TOOLS_MANIFEST = [
+  { name: "calculate_tr_fret_ratio", description: "Calculates 665nm/620nm emission ratios for target engagement assays (PROTAC, KRAS, cAMP)." },
+  { name: "analyze_uaglo_luminescence", description: "Processes luminescent RLU signals for 2D/3D viability, apoptosis, and reporter genes." },
+  { name: "quantify_onestep_elisa", description: "1-hour ELISA biomarker concentration calculations (IL-2, IL-6, IFN-g, IgG, TSH)." },
+  { name: "analyze_hica_fluorescence", description: "High-sensitivity fluorescence analysis for low-abundance proteins (IL-2R, IL-8, IL-12p70)." },
+  { name: "calculate_tissue_organoid_penetration", description: "Evaluates drug penetration depth and barrier permeability in 3D spheroid models." },
+  { name: "calculate_organism_in_vivo_pharmacokinetics", description: "Computes in vivo animal dosing, C_max, half-life, and AUC decay." },
+  { name: "generate_plate_layout", description: "Generates 96-well and 384-well microplate mappings with segment tagging." },
+  { name: "get_assay_kit_specifications", description: "Provides reaction volume and protocol specs for TR-FRET, UA-Glo, ELISA, and HICA." },
+  { name: "ingest_medical_device_telemetry", description: "Ingests raw telemetry from microplate readers and spectrophotometers with calibration checks." },
+  { name: "convert_to_fhir_observation", description: "Formats assay measurements into HL7 FHIR v4.0.1 Observation JSON resources." }
+];
 
 async function handleRequest(request) {
   const url = new URL(request.url);
 
-  // 1. CORS Preflight
+  // 1. CORS Preflight Handling
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -20,7 +31,7 @@ async function handleRequest(request) {
     });
   }
 
-  // 2. Health Check
+  // 2. Health Endpoint
   if (url.pathname === "/health") {
     return new Response(JSON.stringify({
       status: "HEALTHY",
@@ -33,36 +44,53 @@ async function handleRequest(request) {
     });
   }
 
-  // 3. Human Browser Visits ONLY: Redirect to Documentation Page
+  // 3. MCP Protocol Requests (POST Requests or Cloudflare Discovery Pings)
+  if (request.method === "POST") {
+    try {
+      const body = await request.json();
+      
+      // Handle MCP initialize request
+      if (body.method === "initialize") {
+        return new Response(JSON.stringify({
+          jsonrpc: "2.0",
+          id: body.id || 1,
+          result: {
+            protocolVersion: "2024-11-05",
+            capabilities: { tools: {} },
+            serverInfo: { name: "seosiri-bioassay-mcp", version: "1.1.1" }
+          }
+        }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      }
+
+      // Handle MCP tools/list request
+      if (body.method === "tools/list") {
+        return new Response(JSON.stringify({
+          jsonrpc: "2.0",
+          id: body.id || 1,
+          result: { tools: TOOLS_MANIFEST }
+        }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      }
+    } catch (e) {
+      // Return tool manifest if body parsing fails or if it is a general discovery check
+      return new Response(JSON.stringify({
+        jsonrpc: "2.0",
+        result: { tools: TOOLS_MANIFEST }
+      }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+  }
+
+  // 4. Human Web Browser GET Requests: Redirect to Documentation Page
   const acceptHeader = request.headers.get("Accept") || "";
-  const userAgent = request.headers.get("User-Agent") || "";
-  
-  // If request is GET at root '/' AND comes from a human browser (accepts text/html and not a Cloudflare/MCP bot)
-  if ((url.pathname === "/" || url.pathname === "") && request.method === "GET" && acceptHeader.includes("text/html") && !userAgent.includes("Cloudflare")) {
+  if (request.method === "GET" && acceptHeader.includes("text/html")) {
     return Response.redirect("https://www.seosiri.com/2026/07/bioassay-mcp.html", 301);
   }
 
-  // 4. MCP Discovery & Tool Protocol Requests (POST / SSE / Cloudflare Pings) -> Forward to Backend Execution Engine
-  try {
-    const modifiedRequest = new Request(BACKEND_ENDPOINT + url.pathname + url.search, {
-      method: request.method,
-      headers: request.headers,
-      body: request.body,
-    });
-
-    const response = await fetch(modifiedRequest);
-    const newHeaders = new Headers(response.headers);
-    newHeaders.set("Access-Control-Allow-Origin", "*");
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: newHeaders,
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "GATEWAY_TIMEOUT", details: err.message }),
-      { status: 504, headers: { "Content-Type": "application/json" } }
-    );
-  }
+  // 5. Default Fallback Response for MCP Discovery Pings
+  return new Response(JSON.stringify({
+    jsonrpc: "2.0",
+    result: { tools: TOOLS_MANIFEST }
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+  });
 }
