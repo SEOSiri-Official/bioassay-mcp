@@ -19,7 +19,34 @@ async function handleRequest(request) {
     });
   }
 
-  if (url.pathname === "/health") {
+  
+    // API Endpoint: TR-FRET Ratio Calculator
+    if (url.pathname === "/api/tr-fret" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const donor = Number(body.donor_signal || body.donor || 1);
+        const acceptor = Number(body.acceptor_signal || body.acceptor || 0);
+        const ratio = (acceptor / donor) * 10000;
+
+        return new Response(JSON.stringify({
+          status: "SUCCESS",
+          assay_type: "TR-FRET Ratio Calculator",
+          tr_fret_ratio: Number(ratio.toFixed(2)),
+          donor_signal: donor,
+          acceptor_signal: acceptor
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ status: "ERROR", message: "Invalid payload" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
+    }
+
+    if (url.pathname === "/health") {
     return new Response(JSON.stringify({
       status: "HEALTHY",
       service: "SEOSiri BioAssay MCP Edge Gateway",
